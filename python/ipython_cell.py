@@ -564,7 +564,8 @@ def _slimesend(string):
         return
 
     try:
-        vim.command('SlimeSend1 {}'.format(string))
+        #  vim.command('SlimeSend1 {}'.format(string))
+        vim.command('call Ysendterm({})'.format(string))
     except vim.error:
         _error("Could not execute SlimeSend1 command, make sure vim-slime is "
                "installed")
@@ -578,7 +579,8 @@ def _slimesend0(string):
         return
 
     try:
-        vim.command('SlimeSend0 "{}"'.format(string))
+        #  vim.command('SlimeSend0 "{}"'.format(string))
+        vim.command('call Ysendterm0({})'.format(string))
     except vim.error:
         _error("Could not execute SlimeSend0 command, make sure vim-slime is "
                "installed")
