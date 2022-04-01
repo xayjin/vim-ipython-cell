@@ -74,6 +74,8 @@ def execute_cell(use_cpaste=False):
     #  use_cpaste=True
     #  _slimesend(cell)
     #  return
+    cell=filetertext(cell)
+
     if not use_cpaste:
         if cell_is_empty:
             _slimesend("# empty cell")
@@ -565,6 +567,21 @@ def python_input(message = 'input',dft=""):
   vim.command("let user_input = input('" + message + ": ',"+str(dft)+")")
   vim.command('call inputrestore()')
   return vim.eval('user_input')
+
+def filetertext(text):
+    #剔除最后换行符
+    text=re.sub("[\r,\n]+$","",text)
+    #如果最后1行有缩进，就添加一个\r
+    lastlnstartblank=False
+    ml=re.findall("[\r,\n](.*)$", text)
+    if(len(ml)>0):
+        lastln=ml[0]
+        lastlnstart=re.findall("^\s",lastln)
+        if(len(lastlnstart)>0):
+            lastlnstartblank=True
+    if(lastlnstartblank):
+        text+="\r"
+    return text
 
 def sendterm_new(string,addreturn=True):
     try:
