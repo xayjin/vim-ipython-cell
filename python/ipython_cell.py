@@ -560,18 +560,22 @@ def _get_rows_with_marks(buffer, valid_marks):
 def _sanitize(string):
     return "'" + re.sub(re.compile("'"), "''", string) + "'"
 
-def python_input(message = 'input'):
+def python_input(message = 'input',dft=""):
   vim.command('call inputsave()')
-  vim.command("let user_input = input('" + message + ": ')")
+  vim.command("let user_input = input('" + message + ": ',"+str(dft)+")")
   vim.command('call inputrestore()')
   return vim.eval('user_input')
 
-def _sendterm(string,addreturn=True):
+def sendterm_new(string,addreturn=True):
     try:
         hasnvim=vim.eval("has('nvim')")
         term_to_send=vim.eval("g:term_to_send")
-        if(term_to_send==-1):
-            term_to_send=python_input("term id:")
+        if(term_to_send==-1 or term_to_send=="-1"):
+            if(hasnvim=='1'):
+                lastch=vim.eval("g:slime_last_channel")
+                term_to_send=python_input("term id ",lastch)
+            else:
+                term_to_send=vim.eval("GetVimTermid()")
             vim.command("let g:term_to_send=" + str(term_to_send))
         esp_string=string.replace("'","''")
         if(addreturn):
@@ -589,8 +593,8 @@ def _slimesend(string):
         return
 
     try:
-        #  _sendterm(string,True)
-        vim.command('SlimeSend1 {}'.format(string))
+        sendterm_new(string,True)
+        #  vim.command('SlimeSend1 {}'.format(string))
     except vim.error as e:
         _error("Could not execute SlimeSend1 command, make sure vim-slime is "
                "installed {}")
@@ -605,8 +609,8 @@ def _slimesend0(string):
         return
 
     try:
-        #  _sendterm(string,False)
-        vim.command('SlimeSend0 "{}"'.format(string))
+        sendterm_new(string,False)
+        #  vim.command('SlimeSend0 "{}"'.format(string))
     except vim.error:
         _error("Could not execute SlimeSend0 command, make sure vim-slime is "
                "installed")
