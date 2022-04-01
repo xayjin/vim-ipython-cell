@@ -570,15 +570,17 @@ def python_input(message = 'input',dft=""):
 
 def filetertext(text):
     #剔除最后换行符
-    text=re.sub("[\r,\n]+$","",text)
+    text=re.sub("[\r\n]+$","",text)
     #剔除连续2个换行符
-    text=re.sub("[\r,\n]+", "\n", text)
+    text=re.sub("[\r\n]+", "\n", text)
+    #换行符后换一个清楚本行，去掉缩进
+    text=re.sub("[\r\n]", "\n\x15", text)
     #如果最后1行有缩进，就添加一个\r
     lastlnstartblank=False
-    ml=re.findall("[\r,\n](.*)$", text)
+    ml=re.findall("[\r\n](.*)$", text)
     if(len(ml)>0):
         lastln=ml[0]
-        lastlnstart=re.findall("^\s",lastln)
+        lastlnstart=re.findall("^[\s\x15]",lastln)
         if(len(lastlnstart)>0):
             lastlnstartblank=True
     if(lastlnstartblank):
