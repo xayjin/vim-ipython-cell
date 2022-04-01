@@ -571,6 +571,8 @@ def python_input(message = 'input',dft=""):
 def filetertext(text):
     #剔除最后换行符
     text=re.sub("[\r,\n]+$","",text)
+    #剔除连续2个换行符
+    text=re.sub("[\r,\n]+", "\n", text)
     #如果最后1行有缩进，就添加一个\r
     lastlnstartblank=False
     ml=re.findall("[\r,\n](.*)$", text)
