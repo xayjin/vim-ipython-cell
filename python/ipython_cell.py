@@ -71,6 +71,8 @@ def execute_cell(use_cpaste=False):
         indentation = re.match(r"[\t ]*", first_row).group()
         cell = indentation + "__file__ = '{}'\n".format(f) + cell
 
+    _slimesend(cell)
+    return
     if not use_cpaste:
         if cell_is_empty:
             _slimesend("# empty cell")
@@ -557,18 +559,39 @@ def _get_rows_with_marks(buffer, valid_marks):
 def _sanitize(string):
     return "'" + re.sub(re.compile("'"), "''", string) + "'"
 
+def python_input(message = 'input'):
+  vim.command('call inputsave()')
+  vim.command("let user_input = input('" + message + ": ')")
+  vim.command('call inputrestore()')
+  return vim.eval('user_input')
 
+def _sendterm(string,addreturn=True):
+    try:
+        hasnvim=vim.eval("has('nvim')")
+        term_to_send=vim.eval("g:term_to_send")
+        if(term_to_send==-1):
+            term_to_send=python_input("term id:")
+            vim.command("let g:term_to_send=" + str(term_to_send))
+        esp_string=string.replace("'","''")
+        if(addreturn):
+            esp_string+="\r"
+        if(hasnvim=='1'):
+            vim.command("""call chansend("""+str(term_to_send)+",'"+esp_string+"')")
+        else:
+            vim.command("""call term_sendkeys("""+str(term_to_send)+",'"+esp_string+"')")
+    except vim.error as e:
+        _error(e)
+        
 def _slimesend(string):
     """Send ``string`` using vim-slime."""
     if not string:
         return
-
     try:
-        #  vim.command('SlimeSend1 {}'.format(string))
-        vim.command('call Ysendterm({})'.format(string))
-    except vim.error:
+        _sendterm(string,True)
+    except vim.error as e:
         _error("Could not execute SlimeSend1 command, make sure vim-slime is "
-               "installed")
+               "installed {}")
+        _error(e)
 
 
 def _slimesend0(string):
@@ -577,10 +600,8 @@ def _slimesend0(string):
     """
     if not string:
         return
-
     try:
-        #  vim.command('SlimeSend0 "{}"'.format(string))
-        vim.command('call Ysendterm0({})'.format(string))
+        _sendterm(string,False)
     except vim.error:
         _error("Could not execute SlimeSend0 command, make sure vim-slime is "
                "installed")
