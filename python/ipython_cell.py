@@ -71,8 +71,9 @@ def execute_cell(use_cpaste=False):
         indentation = re.match(r"[\t ]*", first_row).group()
         cell = indentation + "__file__ = '{}'\n".format(f) + cell
 
-    _slimesend(cell)
-    return
+    #  use_cpaste=True
+    #  _slimesend(cell)
+    #  return
     if not use_cpaste:
         if cell_is_empty:
             _slimesend("# empty cell")
@@ -586,8 +587,10 @@ def _slimesend(string):
     """Send ``string`` using vim-slime."""
     if not string:
         return
+
     try:
-        _sendterm(string,True)
+        #  _sendterm(string,True)
+        vim.command('SlimeSend1 {}'.format(string))
     except vim.error as e:
         _error("Could not execute SlimeSend1 command, make sure vim-slime is "
                "installed {}")
@@ -600,8 +603,10 @@ def _slimesend0(string):
     """
     if not string:
         return
+
     try:
-        _sendterm(string,False)
+        #  _sendterm(string,False)
+        vim.command('SlimeSend0 "{}"'.format(string))
     except vim.error:
         _error("Could not execute SlimeSend0 command, make sure vim-slime is "
                "installed")
