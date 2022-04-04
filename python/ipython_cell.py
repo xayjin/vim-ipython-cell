@@ -281,7 +281,7 @@ def _clear_prompt():
         _slimesend0(CTRL_U)
 
     if vim.eval('g:ipython_cell_send_ctrl_c') != '0':
-        _slimesend0("i")  # enter insert mode
+        #  _slimesend0("i")  # enter insert mode
         _slimesend0(CTRL_C)
 
 
