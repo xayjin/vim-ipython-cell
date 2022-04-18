@@ -606,6 +606,7 @@ def sendterm_new(string,addreturn=True):
         else:
             vim.command("""call term_sendkeys("""+str(term_to_send)+",'"+esp_string+"')")
     except vim.error as e:
+        vim.command("let g:term_to_send=-1")
         _error(e)
         
 def _slimesend(string):
@@ -619,6 +620,7 @@ def _slimesend(string):
     except vim.error as e:
         _error("Could not execute SlimeSend1 command, make sure vim-slime is "
                "installed {}")
+        vim.command("let g:term_to_send=-1")
         _error(e)
 
 
@@ -635,3 +637,4 @@ def _slimesend0(string):
     except vim.error:
         _error("Could not execute SlimeSend0 command, make sure vim-slime is "
                "installed")
+        vim.command("let g:term_to_send=-1")
