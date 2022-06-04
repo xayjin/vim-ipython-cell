@@ -3,6 +3,8 @@ from __future__ import print_function
 import re
 from subprocess import Popen, PIPE
 import sys
+import logging
+import socket
 
 try:
     import vim
@@ -10,6 +12,23 @@ except ImportError:
     print("warning: importing ipython_cell outside vim, some functions will "
           "not work")
 
+logger = logging.getLogger(__name__)
+termsock=socket.socket()
+
+def is_socket_closed(sock: socket.socket) -> bool:
+    try:
+        # this will try to read bytes without blocking and also without removing them from buffer (peek only)
+        data = sock.recv(16, socket.MSG_DONTWAIT | socket.MSG_PEEK)
+        if len(data) == 0:
+            return True
+    except BlockingIOError:
+        return False  # socket is open and reading from it would block
+    except ConnectionResetError:
+        return True  # socket was closed for some other reason
+    except Exception as e:
+        #  _error("unexpected exception when checking if a socket is closed",e)
+        return True
+    return False
 
 CTRL_C = '\x03'
 CTRL_N = '\x0e'
@@ -41,6 +60,8 @@ def execute_cell(use_cpaste=False):
     if end_row is None:
         end_row = len(vim.current.buffer)
 
+    term_sendsocket=vim.eval("g:term_sendsocket")
+
     _clear_prompt()
 
     # Send tags?
@@ -51,9 +72,10 @@ def execute_cell(use_cpaste=False):
         else:
             cell_header = vim.current.buffer[start_row-1]
 
-        _slimesend0(cell_header)
-        _slimesend0(CTRL_O)
-        _slimesend0(CTRL_N)
+        if(term_sendsocket!="1"):
+            _slimesend0(cell_header)
+            _slimesend0(CTRL_O)
+            _slimesend0(CTRL_N)
 
     # Do not send the tag over
     if vim.eval('g:ipython_cell_delimit_cells_by') == 'tags':
@@ -63,6 +85,10 @@ def execute_cell(use_cpaste=False):
     # start_row and end_row are 1-indexed, need to subtract 1
     cell = "\n".join(vim.current.buffer[start_row-1:end_row])
     cell_is_empty = not cell
+
+    if(term_sendsocket=="1"):
+        sendterm_by_socket(cell)
+        return
 
     if vim.eval('g:ipython_cell_update_file_variable') != '0':
         f = vim.eval("expand('%:p')")
@@ -589,22 +615,27 @@ def filetertext(text):
 
 def sendterm_new(string,addreturn=True):
     try:
-        hasnvim=vim.eval("has('nvim')")
-        term_to_send=vim.eval("g:term_to_send")
-        if(term_to_send==-1 or term_to_send=="-1"):
-            if(hasnvim=='1'):
-                lastch=vim.eval("g:slime_last_channel")
-                term_to_send=python_input("term id ",lastch)
-            else:
-                term_to_send=vim.eval("GetVimTermid()")
-            vim.command("let g:term_to_send=" + str(term_to_send))
-        esp_string=string.replace("'","''")
-        if(addreturn):
-            esp_string+="\r"
-        if(hasnvim=='1'):
-            vim.command("""call chansend("""+str(term_to_send)+",'"+esp_string+"')")
+        term_sendsocket=vim.eval("g:term_sendsocket")
+        if(term_sendsocket=="1"):
+            # return because execute_cell has sent
+            return
         else:
-            vim.command("""call term_sendkeys("""+str(term_to_send)+",'"+esp_string+"')")
+            hasnvim=vim.eval("has('nvim')")
+            term_to_send=vim.eval("g:term_to_send")
+            if(term_to_send==-1 or term_to_send=="-1"):
+                if(hasnvim=='1'):
+                    lastch=vim.eval("g:slime_last_channel")
+                    term_to_send=python_input("term id ",lastch)
+                else:
+                    term_to_send=vim.eval("GetVimTermid()")
+                vim.command("let g:term_to_send=" + str(term_to_send))
+            esp_string=string.replace("'","''")
+            if(addreturn):
+                esp_string+="\r"
+            if(hasnvim=='1'):
+                vim.command("""call chansend("""+str(term_to_send)+",'"+esp_string+"')")
+            else:
+                vim.command("""call term_sendkeys("""+str(term_to_send)+",'"+esp_string+"')")
     except vim.error as e:
         vim.command("let g:term_to_send=-1")
         _error(e)
@@ -638,3 +669,23 @@ def _slimesend0(string):
         _error("Could not execute SlimeSend0 command, make sure vim-slime is "
                "installed")
         vim.command("let g:term_to_send=-1")
+
+def sendterm_by_socket(string):
+    global termsock
+    if(len(string)<=0):
+        return
+    try:
+        if(is_socket_closed(termsock)):
+            termsendhost=vim.eval("g:termsendhost")
+            termsendport=vim.eval("g:termsendport")
+            termsock=socket.socket()
+            termsock.connect((termsendhost,int(termsendport)))
+
+        termsock.send(string.encode("utf_8"))
+        if(string[-1]!="\0"):
+            termsock.send("\0".encode("utf_8"))
+    except Exception as e:
+        _error("termsend socket error:",e)
+
+
+            
