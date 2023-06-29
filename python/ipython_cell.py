@@ -631,7 +631,11 @@ def sendterm_new(string,addreturn=True):
                 vim.command("let g:term_to_send=" + str(term_to_send))
             esp_string=string.replace("'","''")
             if(addreturn):
-                esp_string+="\r"
+                if(vim.eval("has('win32')")):
+                    esp_string+="\n"
+                else:
+                    esp_string+="\r"
+
             if(hasnvim=='1'):
                 vim.command("""call chansend("""+str(term_to_send)+",'"+esp_string+"')")
             else:
